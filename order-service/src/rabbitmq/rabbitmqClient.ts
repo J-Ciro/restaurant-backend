@@ -90,6 +90,62 @@ export class RabbitMQClient {
   }
 
   /**
+   * Consume eventos de un routing key específico
+   * @param routingKey - Clave de enrutamiento a consumir (ej: 'order.ready')
+   * @param queueName - Nombre de la cola (opcional, se genera automáticamente si no se proporciona)
+   * @param handler - Función que maneja el mensaje recibido
+   */
+  async consumeEvent(
+    routingKey: string,
+    handler: (message: any) => Promise<void>,
+    queueName?: string
+  ): Promise<void> {
+    if (!this.channel) {
+      throw new Error('RabbitMQ no está conectado. Llama a connect() primero.');
+    }
+
+    try {
+      // Crear cola temporal exclusiva si no se proporciona nombre
+      const queue = queueName || `order-service-${routingKey}`;
+      
+      await this.channel.assertQueue(queue, {
+        durable: true // La cola sobrevive a reinicios del servidor
+      });
+
+      // Vincular la cola al exchange con el routing key
+      await this.channel.bindQueue(queue, this.exchangeName, routingKey);
+
+      console.log(`📥 Suscrito a eventos: ${routingKey} (cola: ${queue})`);
+
+      // Consumir mensajes
+      await this.channel.consume(queue, async (msg) => {
+        if (!msg) {
+          return;
+        }
+
+        try {
+          const content = JSON.parse(msg.content.toString());
+          console.log(`📨 Evento recibido: ${routingKey}`, content);
+          
+          await handler(content);
+          
+          // Confirmar procesamiento del mensaje
+          this.channel!.ack(msg);
+        } catch (error) {
+          console.error(`❌ Error procesando mensaje de ${routingKey}:`, error);
+          // Rechazar el mensaje y no reenviarlo a la cola
+          this.channel!.nack(msg, false, false);
+        }
+      }, {
+        noAck: false // Requiere confirmación manual del procesamiento
+      });
+    } catch (error) {
+      console.error(`❌ Error suscribiéndose a ${routingKey}:`, error);
+      throw error;
+    }
+  }
+
+  /**
    * Verifica si está conectado
    */
   isConnected(): boolean {

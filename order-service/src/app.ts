@@ -3,6 +3,8 @@ import cors from 'cors';
 import { connectDatabase } from './config/database';
 import { rabbitMQClient } from './rabbitmq/rabbitmqClient';
 import orderRoutes from './routes/orderRoutes';
+import { orderService } from './services/orderService';
+import { OrderStatus } from './models/Order';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -32,6 +34,35 @@ async function startServer() {
     // Conectar a RabbitMQ
     await rabbitMQClient.connect();
 
+    // Suscribirse al evento order.ready del Kitchen Service
+    await rabbitMQClient.consumeEvent('order.ready', async (message) => {
+      try {
+        const { orderId } = message;
+        
+        if (!orderId) {
+          console.warn('⚠️ Mensaje order.ready sin orderId:', message);
+          return;
+        }
+
+        console.log(`🔄 Actualizando estado del pedido ${orderId} a READY`);
+        
+        // Actualizar el estado del pedido a READY
+        const updatedOrder = await orderService.updateOrderStatus(
+          orderId,
+          OrderStatus.READY
+        );
+
+        if (updatedOrder) {
+          console.log(`✅ Pedido ${updatedOrder.orderNumber} actualizado a estado READY`);
+        } else {
+          console.warn(`⚠️ No se encontró el pedido con ID: ${orderId}`);
+        }
+      } catch (error) {
+        console.error('❌ Error procesando evento order.ready:', error);
+        throw error; // Re-lanzar para que el mensaje se rechace
+      }
+    });
+
     // Iniciar servidor
     app.listen(PORT, () => {
       console.log(`📋 Order Service corriendo en puerto ${PORT}`);
@@ -41,6 +72,7 @@ async function startServer() {
       console.log(`   GET    /orders - Listar pedidos`);
       console.log(`   GET    /orders/:id - Obtener pedido`);
       console.log(`   GET    /orders/:id/status - Consultar estado`);
+      console.log(`📥 Consumiendo eventos: order.ready`);
     });
   } catch (error) {
     console.error('❌ Error iniciando el servidor:', error);
