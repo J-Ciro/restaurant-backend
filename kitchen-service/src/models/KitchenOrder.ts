@@ -1,9 +1,57 @@
+import mongoose, { Schema, Document } from 'mongoose';
 
-
-export interface IKitchenOrder  {
-  
+export interface IKitchenOrder extends Document {
+  orderId: string;
+  userId: string;
+  customerName?: string;
+  customerEmail?: string;
+  items: Array<{
+    name: string;
+    quantity: number;
+    price?: number;
+  }>;
+  status: 'RECEIVED' | 'PREPARING' | 'READY';
+  receivedAt: Date;
+  preparingAt?: Date;
+  readyAt?: Date;
+  estimatedTime?: number; // en minutos
+  notes?: string;
 }
 
-const KitchenOrderSchema: {}
+const KitchenOrderSchema = new Schema({
+  orderId: { 
+    type: String, 
+    required: true, 
+    unique: true,
+    index: true 
+  },
+  userId: { 
+    type: String, 
+    required: true 
+  },
+  customerName: String,
+  customerEmail: String,
+  items: [{
+    name: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    price: Number
+  }],
+  status: { 
+    type: String, 
+    enum: ['RECEIVED', 'PREPARING', 'READY'],
+    default: 'RECEIVED',
+    index: true
+  },
+  receivedAt: { 
+    type: Date, 
+    default: Date.now 
+  },
+  preparingAt: Date,
+  readyAt: Date,
+  estimatedTime: Number,
+  notes: String
+}, { 
+  timestamps: true 
+});
 
-
+export const KitchenOrder = mongoose.model<IKitchenOrder>('KitchenOrder', KitchenOrderSchema);
