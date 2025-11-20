@@ -6,13 +6,8 @@ import kitchenRoutes from './routes/kitchenRoutes';
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware CORS - Permitir peticiones desde cualquier origen (en desarrollo)
-app.use(cors({
-  origin: process.env.FRONTEND_URL || '*', // En producción, especificar el dominio del frontend
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
-}));
+// Middleware
+app.use(cors());
 app.use(express.json());
 
 // Routes
