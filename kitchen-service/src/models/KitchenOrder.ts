@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IKitchenOrder extends Document {
   orderId: string;
-  userId: string;
+  userId?: string;
   customerName?: string;
   customerEmail?: string;
   items: Array<{
@@ -27,7 +27,7 @@ const KitchenOrderSchema = new Schema({
   },
   userId: { 
     type: String, 
-    required: true 
+    required: false 
   },
   customerName: String,
   customerEmail: String,

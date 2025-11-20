@@ -7,7 +7,7 @@ export class RabbitMQClient {
   private readonly MAX_RETRIES = 3;
   private url: string;
 
-  constructor(exchange: string = 'orders_exchange') {
+  constructor(exchange: string = 'orders') {
     this.exchange = exchange;
     this.url = process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672';
   }

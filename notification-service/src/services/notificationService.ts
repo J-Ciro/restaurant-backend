@@ -6,67 +6,71 @@ import { Notification, OrderEvent } from '../types';
  * Responsabilidad única: Gestionar clientes SSE y enviar notificaciones
  */
 class NotificationService {
-  private clients: Response[] = [];
-  private notificationCounter = 0;
+    private clients: Response[] = [];
+    private notificationCounter = 0;
 
-  // Agregar nuevo cliente SSE
-  addClient(res: Response): void {
-    this.clients.push(res);
-    console.log(`✅ Cliente conectado. Total: ${this.clients.length}`);
+    // Agregar nuevo cliente SSE
+    addClient(res: Response): void {
+        this.clients.push(res);
+        console.log(`✅ Cliente conectado. Total: ${this.clients.length}`);
 
-    // Enviar mensaje de bienvenida
-    this.sendToClient(res, {
-      id: Date.now().toString(),
-      type: 'info',
-      message: 'Conectado al sistema de notificaciones',
-      orderId: '',
-      timestamp: new Date()
-    });
-  }
+        // Enviar mensaje de bienvenida
+        this.sendToClient(res, {
+            id: Date.now().toString(),
+            type: 'info',
+            message: 'Conectado al sistema de notificaciones',
+            orderId: '',
+            timestamp: new Date()
+        });
+    }
 
-  // Remover cliente desconectado
-  removeClient(res: Response): void {
-    this.clients = this.clients.filter(client => client !== res);
-    console.log(`❌ Cliente desconectado. Total: ${this.clients.length}`);
-  }
+    // Remover cliente desconectado
+    removeClient(res: Response): void {
+        this.clients = this.clients.filter(client => client !== res);
+        console.log(`❌ Cliente desconectado. Total: ${this.clients.length}`);
+    }
 
-  // Procesar evento de RabbitMQ y crear notificación
-  handleOrderEvent(event: OrderEvent): void {
-    const notification = this.createNotification(event);
-    this.broadcast(notification);
-    console.log(`📢 Notificación enviada: ${notification.message}`);
-  }
+    // Procesar evento de RabbitMQ y crear notificación
+    handleOrderEvent(event: OrderEvent): void {
+        const notification = this.createNotification(event);
+        this.broadcast(notification);
+        console.log(`📢 Notificación enviada: ${notification.message}`);
+    }
 
-  // Crear notificación basada en tipo de evento
-  private createNotification(event: OrderEvent): Notification {
-    const messages = {
-      'order.created': `Pedido #${event.orderId} recibido correctamente`,
-      'order.ready': `¡Tu pedido #${event.orderId} está listo para recoger!`
-    };
+    // Crear notificación basada en tipo de evento
+    private createNotification(event: OrderEvent): Notification {
+        const messages = {
+            'order.created': `Pedido #${event.orderId} recibido correctamente`,
+            'order.received': `Cocina recibió tu pedido #${event.orderId}`,      
+            'order.preparing': `Tu pedido #${event.orderId} está en preparación`, 
+            'order.ready': `¡Tu pedido #${event.orderId} está listo para recoger!`
+        };
 
-    const types: Record<OrderEvent['type'], Notification['type']> = {
-      'order.created': 'info',
-      'order.ready': 'success'
-    };
+        const types: Record<OrderEvent['type'], Notification['type']> = {
+            'order.created': 'info',
+            'order.received': 'info',   
+            'order.preparing': 'info',  
+            'order.ready': 'success'
+        };
 
-    return {
-      id: `${Date.now()}-${this.notificationCounter++}`,
-      type: types[event.type],
-      message: messages[event.type],
-      orderId: event.orderId,
-      timestamp: new Date()
-    };
-  }
+        return {
+            id: `${Date.now()}-${this.notificationCounter++}`,
+            type: types[event.type],
+            message: messages[event.type],
+            orderId: event.orderId,
+            timestamp: new Date()
+        };
+    }
 
-  // Enviar notificación a todos los clientes
-  private broadcast(notification: Notification): void {
-    this.clients.forEach(client => this.sendToClient(client, notification));
-  }
+    // Enviar notificación a todos los clientes
+    private broadcast(notification: Notification): void {
+        this.clients.forEach(client => this.sendToClient(client, notification));
+    }
 
-  // Enviar datos a un cliente específico (formato SSE)
-  private sendToClient(res: Response, notification: Notification): void {
-    res.write(`data: ${JSON.stringify(notification)}\n\n`);
-  }
+    // Enviar datos a un cliente específico (formato SSE)
+    private sendToClient(res: Response, notification: Notification): void {
+        res.write(`data: ${JSON.stringify(notification)}\n\n`);
+    }
 }
 
 // Singleton - una sola instancia compartida

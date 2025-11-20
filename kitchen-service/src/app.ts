@@ -34,7 +34,7 @@ async function startServer() {
 
     // 2. Inicializar RabbitMQ
     console.log('🐰 Connecting to RabbitMQ...');
-    const rabbitMQClient = new RabbitMQClient();
+    const rabbitMQClient = new RabbitMQClient('orders');
     await rabbitMQClient.connect(RABBITMQ_URL);
     console.log('✅ RabbitMQ connected');
 
@@ -49,7 +49,7 @@ async function startServer() {
     // 5. Configurar consumidor de eventos order.created (paso 2 del flujo)
     console.log('👂 Setting up RabbitMQ consumer for order.created...');
     await rabbitMQClient.consume(
-      'kitchen-service-queue',
+      'kitchen-queue-v2',
       'order.created',
       async (orderData) => {
         console.log('📥 Received order.created event:', orderData);

@@ -15,7 +15,7 @@ class RabbitMQConsumer {
   async connect(): Promise<void> {
     try {
       const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://rabbitmq:5672';
-      
+
       // Conectar con retry
       this.connection = await this.connectWithRetry(rabbitUrl);
       this.channel = await this.createChannel(this.connection);
@@ -26,6 +26,8 @@ class RabbitMQConsumer {
 
       // Binding: escuchar ambos eventos
       await this.bindQueue('order.created');
+      await this.bindQueue('order.received');  
+      await this.bindQueue('order.preparing');  
       await this.bindQueue('order.ready');
 
       // Consumir mensajes
@@ -122,7 +124,7 @@ class RabbitMQConsumer {
     try {
       const event: OrderEvent = JSON.parse(content);
       console.log(`📨 Evento recibido: ${event.type} - Order #${event.orderId}`);
-      
+
       // Delegar al servicio de notificaciones
       notificationService.handleOrderEvent(event);
     } catch (error) {

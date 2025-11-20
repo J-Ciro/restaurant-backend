@@ -15,7 +15,7 @@ export interface OrderCreatedEvent {
 }
 
 export class KitchenService {
-  constructor(private rabbitMQClient: RabbitMQClient) {}
+  constructor(private rabbitMQClient: RabbitMQClient) { }
 
   /**
    * Maneja el evento order.created del order-service
@@ -90,6 +90,7 @@ export class KitchenService {
       order.status = 'PREPARING';
       order.preparingAt = new Date();
       await order.save();
+      await this.notifyOrderServiceStatusChange(orderId, 'PREPARING');
 
       console.log(`👨‍🍳 Order ${orderId} is now PREPARING`);
 
@@ -133,7 +134,7 @@ export class KitchenService {
       order.status = 'READY';
       order.readyAt = new Date();
       await order.save();
-
+      await this.notifyOrderServiceStatusChange(orderId, 'READY');
       console.log(`✅ Order ${orderId} is now READY`);
 
       // Publicar evento order.ready para notification-service
@@ -191,4 +192,30 @@ export class KitchenService {
     // 5 minutos base + 2 minutos por item
     return 5 + (totalItems * 2);
   }
+
+  /**
+ * Notifica al Order Service para actualizar el estado
+ */
+  private async notifyOrderServiceStatusChange(orderId: string, status: string): Promise<void> {
+    try {
+      // Mapear estados de Kitchen a Order
+      const statusMap: Record<string, string> = {
+        'RECEIVED': 'pending',
+        'PREPARING': 'preparing',
+        'READY': 'ready'
+      };
+
+      await this.rabbitMQClient.publish('order.status.updated', {
+        orderId,
+        status: statusMap[status] || status.toLowerCase(),
+        updatedAt: new Date()
+      });
+
+      console.log(`📤 Notificado cambio de estado a Order Service: ${orderId} -> ${status}`);
+    } catch (error) {
+      console.error('❌ Error notificando cambio de estado:', error);
+    }
+  }
+
+
 }
