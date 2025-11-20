@@ -33,7 +33,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3001
-      RABBITMQ_URL: ${CLOUDAMQP_URL} 
+      RABBITMQ_URL: ${RABBITMQ_URL} 
       MONGODB_URL: mongodb://mongodb:27017/orders
     depends_on:
       - mongodb
@@ -46,7 +46,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3002
-      RABBITMQ_URL: ${CLOUDAMQP_URL} 
+      RABBITMQ_URL: ${RABBITMQ_URL} 
       MONGODB_URL: mongodb://mongodb:27017/kitchen
     depends_on:
       - mongodb
@@ -59,7 +59,7 @@ services:
     environment:
       NODE_ENV: development
       PORT: 3003
-      RABBITMQ_URL: ${CLOUDAMQP_URL}
+      RABBITMQ_URL: ${RABBITMQ_URL}
     restart: unless-stopped
 
 volumes:
