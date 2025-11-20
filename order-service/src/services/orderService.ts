@@ -1,5 +1,181 @@
+import { Order, IOrder, OrderStatus, OrderItem } from '../models/Order';
+import { rabbitMQClient } from '../rabbitmq/rabbitmqClient';
 
 export class OrderService {
- 
+  /**
+   * Crea un nuevo pedido
+   * @param customerName - Nombre del cliente
+   * @param items - Items del pedido
+   * @returns El pedido creado
+   */
+  async createOrder(customerName: string, items: OrderItem[]): Promise<IOrder> {
+    try {
+      // Generar número de pedido único
+      const orderNumber = await this.generateOrderNumber();
+
+      // Crear el pedido
+      const order = new Order({
+        orderNumber,
+        customerName,
+        items,
+        status: OrderStatus.PENDING
+      });
+
+      // Calcular total
+      order.total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+      // Guardar en MongoDB
+      const savedOrder = await order.save();
+
+      // Publicar evento order.created a RabbitMQ
+      await rabbitMQClient.publishEvent('order.created', {
+        orderId: savedOrder._id.toString(),
+        orderNumber: savedOrder.orderNumber,
+        customerName: savedOrder.customerName,
+        items: savedOrder.items,
+        total: savedOrder.total,
+        status: savedOrder.status,
+        createdAt: savedOrder.createdAt
+      });
+
+      console.log(`✅ Pedido creado: ${savedOrder.orderNumber}`);
+
+      return savedOrder;
+    } catch (error) {
+      console.error('❌ Error creando pedido:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene un pedido por su ID
+   * @param orderId - ID del pedido
+   * @returns El pedido encontrado
+   */
+  async getOrderById(orderId: string): Promise<IOrder | null> {
+    try {
+      const order = await Order.findById(orderId);
+      return order;
+    } catch (error) {
+      console.error('❌ Error obteniendo pedido:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene un pedido por su número de pedido
+   * @param orderNumber - Número del pedido
+   * @returns El pedido encontrado
+   */
+  async getOrderByNumber(orderNumber: string): Promise<IOrder | null> {
+    try {
+      const order = await Order.findOne({ orderNumber });
+      return order;
+    } catch (error) {
+      console.error('❌ Error obteniendo pedido por número:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene el estado de un pedido
+   * @param orderId - ID del pedido
+   * @returns El estado del pedido o null si no existe
+   */
+  async getOrderStatus(orderId: string): Promise<{ status: OrderStatus; orderNumber: string } | null> {
+    try {
+      const order = await Order.findById(orderId).select('status orderNumber');
+      if (!order) {
+        return null;
+      }
+      return {
+        status: order.status,
+        orderNumber: order.orderNumber
+      };
+    } catch (error) {
+      console.error('❌ Error obteniendo estado del pedido:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Actualiza el estado de un pedido
+   * @param orderId - ID del pedido
+   * @param status - Nuevo estado
+   * @returns El pedido actualizado
+   */
+  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<IOrder | null> {
+    try {
+      const order = await Order.findByIdAndUpdate(
+        orderId,
+        { status, updatedAt: new Date() },
+        { new: true }
+      );
+
+      if (order) {
+        // Publicar evento de actualización
+        await rabbitMQClient.publishEvent('order.updated', {
+          orderId: order._id.toString(),
+          orderNumber: order.orderNumber,
+          status: order.status,
+          updatedAt: order.updatedAt
+        });
+      }
+
+      return order;
+    } catch (error) {
+      console.error('❌ Error actualizando estado del pedido:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Obtiene todos los pedidos (con paginación opcional)
+   * @param limit - Límite de resultados
+   * @param skip - Número de resultados a saltar
+   * @returns Lista de pedidos
+   */
+  async getAllOrders(limit: number = 50, skip: number = 0): Promise<IOrder[]> {
+    try {
+      const orders = await Order.find()
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(skip);
+      return orders;
+    } catch (error) {
+      console.error('❌ Error obteniendo pedidos:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Genera un número de pedido único
+   * @returns Número de pedido único
+   */
+  private async generateOrderNumber(): Promise<string> {
+    let orderNumber: string;
+    let exists = true;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (exists && attempts < maxAttempts) {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      orderNumber = `ORD-${timestamp}-${random}`;
+
+      const existingOrder = await Order.findOne({ orderNumber });
+      exists = existingOrder !== null;
+      attempts++;
+    }
+
+    if (exists) {
+      throw new Error('No se pudo generar un número de pedido único');
+    }
+
+    return orderNumber!;
+  }
 }
+
+// Instancia singleton del servicio
+export const orderService = new OrderService();
 
