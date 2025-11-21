@@ -24,9 +24,10 @@ class RabbitMQConsumer {
       await this.assertExchange();
       await this.assertQueue();
 
-      // Binding: escuchar ambos eventos
+      // Binding: escuchar todos los eventos
       await this.bindQueue('order.created');
       await this.bindQueue('order.received');
+      await this.bindQueue('order.preparing');
       await this.bindQueue('order.ready');
 
       // Consumir mensajes
@@ -135,6 +136,8 @@ class RabbitMQConsumer {
         let inferredType: OrderEvent['type'] = 'order.created';
         if (rawEvent.status === 'READY' || rawEvent.readyAt) {
           inferredType = 'order.ready';
+        } else if (rawEvent.status === 'PREPARING' || rawEvent.preparingAt) {
+          inferredType = 'order.preparing';
         } else if (rawEvent.status === 'RECEIVED' || rawEvent.receivedAt) {
           inferredType = 'order.received';
         }

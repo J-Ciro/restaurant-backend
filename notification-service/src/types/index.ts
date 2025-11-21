@@ -1,5 +1,5 @@
 // Tipos de eventos que RabbitMQ publica
-export type OrderEventType = 'order.created' | 'order.received' | 'order.ready';
+export type OrderEventType = 'order.created' | 'order.received' | 'order.preparing' | 'order.ready';
 
 // Estructura de un evento de pedido
 export interface OrderEvent {
@@ -16,4 +16,5 @@ export interface Notification {
   message: string;
   orderId: string;
   timestamp: Date;
+  eventType?: string;
 }
