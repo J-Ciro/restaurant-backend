@@ -1,100 +1,76 @@
-# Restaurant Backend - Sistema de Pedidos
+# AI_WORKFLOW.md: Flujo de Trabajo y Metodología con IA
 
-Sistema de procesamiento de pedidos para restaurante con arquitectura de microservicios.
+Este documento describe la metodología de trabajo para integrar herramientas de Inteligencia Artificial (IA) generativa (como GitHub Copilot o Cursor) en nuestro proceso de desarrollo de software.
 
-## 🏗️ Arquitectura
+## 🎯 1. Metodología de Desarrollo: "Prompt-Driven Refinement"
 
-- **API Gateway** (Puerto 3000): Punto de entrada único
-- **Order Service** (Puerto 3001): Gestión de pedidos
-- **Kitchen Service** (Puerto 3002): Procesamiento de pedidos en cocina
-- **Notification Service** (Puerto 3003): Notificaciones de estados
+Nuestra metodología establece que la **IA** es el **"Junior Developer"** y el equipo humano (Arquitectos y Revisores) es el **"Arquitecto y Revisor"** principal.
 
-## 🚀 Inicio Rápido
+| Etapa | Responsable | Descripción |
+| :--- | :--- | :--- |
+| **1.1 Diseño** | Arquitectos (con ayuda de IA) | Definición de las especificaciones técnicas completas: esquemas de datos, *endpoints* y rutas de comunicación (e.g., RabbitMQ). |
+| **1.2 Generación** | IA | Utilización de **prompts detallados** para generar el *boilerplate* estructural y la lógica básica. |
+| **1.3 Refinamiento y Pruebas** | Arquitectos y QA | El equipo humano refina el código generado, mejora el *prompt* dividiéndolo en problemas más pequeños, y el QA Engineer valida los criterios de aceptación y la seguridad. |
+| **1.5 Integración** | Equipo | El código refinado se somete a **Pull Request (PR)** y a la revisión por un par antes de su aprobación. |
 
-### Prerrequisitos
+---
 
-- Docker y Docker Compose instalados
-- Node.js 20+ (para desarrollo local)
+### 1.4 Contextualización para la IA
 
-### Ejecutar con Docker Compose
+La IA **no adivina**, necesita leer. Antes de solicitar código, debemos asegurarnos de que la IA tenga acceso al **contexto** necesario:
 
-```bash
-# Desde la raíz de restaurant-backend
-docker-compose up --build
-```
+1.  **Contratos de Datos:** Esquemas JSON para asegurar que *Backend* y *Frontend* utilicen el mismo lenguaje.
+2.  **Estructura del Proyecto:** El árbol de carpetas actual.
+3.  **Tecnologías:** Archivos `requirements.txt` o `package.json` para evitar el uso de librerías extrañas o inconsistentes.
 
-Esto iniciará todos los servicios:
-- RabbitMQ (puerto 5672, management en 15672)
-- MongoDB (puerto 27017)
-- API Gateway (puerto 3000)
-- Order Service (puerto 3001)
-- Kitchen Service (puerto 3002)
-- Notification Service (puerto 3003)
+---
 
-### Desarrollo Local
+## 🗣️ 2. Interacciones Clave (Prompts de Éxito)
 
-Para desarrollo local sin Docker:
+La calidad del resultado de la IA depende de la calidad del *prompt*.
 
-```bash
-# En cada servicio
-cd api-gateway
-npm install
-npm run dev
+* **2.1. Generación de Código:** Usaremos *prompts* detallados que incluyan:
+    * Contexto del microservicio o componente.
+    * Especificaciones técnicas (lenguaje, *framework*, bibliotecas).
+    * Ejemplos de código, si es necesario.
+* **2.2. Refinamiento de Código:** Si el código inicial es inadecuado, lo **desglosamos en problemas más pequeños** y pedimos a la IA soluciones específicas, o mejoramos el *prompt* para ser más específicos.
+* **2.3. Generación de Documentación:**
+    * **Comentarios en el Código:** Usaremos la IA para crear *docstrings* y comentarios claros que expliquen las funciones.
+    * **Documentación de Proyecto:** Mantendremos actualizado el archivo `README.md` con instrucciones exactas.
+* **2.4. Generación de Pruebas:** El **QA Engineer** trabajará con la IA para generar **pruebas unitarias** y de **integración**.
 
-# Repetir para order-service, kitchen-service, notification-service
-```
+---
 
-**Nota:** Necesitarás tener RabbitMQ y MongoDB corriendo localmente.
+## 📚 3. Documentos Clave y Contextualización
 
-## 📁 Estructura
+Para evitar que la IA genere código inconsistente, siempre debe recibir el siguiente **contexto del sistema**:
 
-```
-restaurant-backend/
-├── docker-compose.yml
-├── api-gateway/
-│   ├── src/
-│   │   ├── app.ts
-│   │   ├── routes/
-│   │   └── controllers/
-│   └── package.json
-├── order-service/
-│   ├── src/
-│   │   ├── app.ts
-│   │   ├── models/
-│   │   ├── services/
-│   │   └── rabbitmq/
-│   └── package.json
-├── kitchen-service/
-│   ├── src/
-│   │   ├── app.ts
-│   │   ├── services/
-│   │   └── rabbitmq/
-│   └── package.json
-└── notification-service/
-    ├── src/
-    │   ├── app.ts
-    │   └── rabbitmq/
-    └── package.json
-```
+* **Especificación del Sistema:** Documento que describe los microservicios, sus responsabilidades y la comunicación entre ellos.
+* **Diagramas de Arquitectura:** Diagramas (propios o generados con IA) para contextualizar la estructura del sistema.
+* **Configuraciones de Docker:** Especificaciones de los contenedores para el despliegue.
 
-## 🔄 Flujo de Datos
+---
 
-1. Cliente crea pedido → API Gateway → Order Service → RabbitMQ (order.created)
-2. Kitchen Service consume order.created → Procesa → RabbitMQ (order.ready)
-3. Notification Service consume ambos eventos → Logs en consola
+## 👥 4. Dinámicas de Interacción y Roles
 
-## 🧪 Testing
+### Roles y Responsabilidades
 
-```bash
-# En cada servicio con tests
-npm test
-```
+| Rol en el Equipo | Tarea Central con la IA | Dinámica de Revisión Obligatoria |
+| :--- | :--- | :--- |
+| **Developer** (Backend/Frontend) | **Estrategia de Prompting:** Encargado de crear el *prompt* inicial y realizar el primer pase de **refinamiento** del código. | Siempre debe enviar el código generado junto con el **prompt original** en el Pull Request (PR) para que el par pueda evaluar la estrategia. |
+| **QA Engineer** | **Revisión de Calidad y Seguridad:** Responsable de validar que el código cumpla con la lógica, seguridad y criterios de aceptación. | Utiliza *prompts* de auditoría (ej. "Busca vulnerabilidades comunes de inyección SQL") y ejecuta pruebas de estrés. |
+| **Revisor** (Par) | **Aprobación de Código:** Verifica la implementación del *Git Flow* y la adherencia al `AI_WORKFLOW.md`. | **Ritual:** Ningún Pull Request se aprueba sin la revisión de un par. |
 
-## 📝 TODO
+### 4.2. Flujo de Trabajo con IA
 
-- [ ] Implementar lógica de negocio en cada servicio
-- [ ] Configurar conexiones a MongoDB
-- [ ] Configurar RabbitMQ (publicar/consumir eventos)
-- [ ] Implementar endpoints en API Gateway
-- [ ] Completar tests
+1.  Un desarrollador escribe un *prompt* detallado para una tarea.
+2.  La IA genera el código.
+3.  El desarrollador **revisa y prueba** el código.
+4.  Si es necesario, se **itera** con la IA (refinamiento del *prompt*).
+5.  Una vez aprobado por el desarrollador, se sube a la rama *feature* correspondiente.
+6.  El QA Engineer **revisa y aprueba** el código (seguridad y calidad).
 
+### 4.3. Roles en la Interacción con IA
+
+* **Developers:** Generan *prompts* y revisan el código generado.
+* **QA Engineer:** Genera *prompts* para pruebas y valida la seguridad y estrés del código.
