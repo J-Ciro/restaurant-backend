@@ -34,6 +34,34 @@ async function startServer() {
     // Conectar a RabbitMQ
     await rabbitMQClient.connect();
 
+    // Suscribirse al evento order.preparing del Kitchen Service
+    await rabbitMQClient.consumeEvent('order.preparing', async (message) => {
+      try {
+        const { orderId } = message;
+
+        if (!orderId) {
+          console.warn('⚠️ Mensaje order.preparing sin orderId:', message);
+          return;
+        }
+
+        console.log(`👨‍🍳 Actualizando estado del pedido ${orderId} a PREPARING`);
+
+        const updatedOrder = await orderService.updateOrderStatus(
+          orderId,
+          OrderStatus.PREPARING
+        );
+
+        if (updatedOrder) {
+          console.log(`✅ Pedido ${updatedOrder.orderNumber} actualizado a estado PREPARING`);
+        } else {
+          console.warn(`⚠️ No se encontró el pedido con ID: ${orderId}`);
+        }
+      } catch (error) {
+        console.error('❌ Error procesando evento order.preparing:', error);
+        throw error;
+      }
+    });
+
     // Suscribirse al evento order.ready del Kitchen Service
     await rabbitMQClient.consumeEvent('order.ready', async (message) => {
       try {
@@ -72,7 +100,7 @@ async function startServer() {
       console.log(`   GET    /orders - Listar pedidos`);
       console.log(`   GET    /orders/:id - Obtener pedido`);
       console.log(`   GET    /orders/:id/status - Consultar estado`);
-      console.log(`📥 Consumiendo eventos: order.ready`);
+      console.log(`📥 Consumiendo eventos: order.preparing, order.ready`);
     });
   } catch (error) {
     console.error('❌ Error iniciando el servidor:', error);

@@ -13,12 +13,26 @@ const kitchenServiceClient = new BaseHttpClient(
 
 
 export const orderService = {
-  createOrder: (orderData: CreateOrderRequest) => orderServiceClient.post<Order>('/orders', orderData),
-  getOrderById: (orderId: string) => orderServiceClient.get<Order>(`/orders/${orderId}`),
+  createOrder: (orderData: CreateOrderRequest) => 
+    orderServiceClient.post<Order>('/orders', orderData),
+  getOrderById: (orderId: string) => 
+    orderServiceClient.get<Order>(`/orders/${orderId}`),
+  getOrderStatus: (orderId: string) => 
+    orderServiceClient.get(`/orders/${orderId}/status`),
+  getAllOrders: () => orderServiceClient.get<Order[]>('/orders'),
 };
-
 
 export const kitchenService = {
-  getKitchenOrders: () => kitchenServiceClient.get<KitchenOrder[]>('/orders'),
+  getKitchenOrders: (status?: string) => {
+    const url = status 
+      ? `/api/kitchen/orders?status=${status}`
+      : '/api/kitchen/orders';
+    return kitchenServiceClient.get<KitchenOrder[]>(url);
+  },
+  getKitchenOrderById: (orderId: string) => 
+    kitchenServiceClient.get<KitchenOrder>(`/api/kitchen/orders/${orderId}`),
+  startPreparing: (orderId: string) => 
+    kitchenServiceClient.post(`/api/kitchen/orders/${orderId}/start-preparing`),
+  markAsReady: (orderId: string) => 
+    kitchenServiceClient.post(`/api/kitchen/orders/${orderId}/ready`),
 };
-
