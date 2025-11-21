@@ -42,12 +42,14 @@ class NotificationService {
     const messages: Record<OrderEvent['type'], string> = {
       'order.created': `Pedido #${event.orderId} recibido correctamente`,
       'order.received': `Pedido #${event.orderId} recibido en cocina`,
+      'order.preparing': `Tu pedido #${event.orderId} está siendo preparado`,
       'order.ready': `¡Tu pedido #${event.orderId} está listo para recoger!`
     };
 
     const types: Record<OrderEvent['type'], Notification['type']> = {
       'order.created': 'info',
       'order.received': 'info',
+      'order.preparing': 'warning',
       'order.ready': 'success'
     };
 
@@ -56,7 +58,8 @@ class NotificationService {
       type: types[event.type],
       message: messages[event.type],
       orderId: event.orderId,
-      timestamp: new Date()
+      timestamp: new Date(),
+      eventType: event.type
     };
   }
 
