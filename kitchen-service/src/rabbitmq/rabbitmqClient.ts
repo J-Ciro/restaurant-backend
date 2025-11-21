@@ -91,7 +91,7 @@ export class RabbitMQClient {
     }
     
     try {
-      let queueName = "kitchen-service-queue-v5";
+      let queueName = queue;
 
       try {
         await this.channel.assertQueue(queueName, { 
@@ -103,7 +103,7 @@ export class RabbitMQClient {
       } catch (assertError: any) {
         if (assertError.code === 406) {
           console.warn(`⚠️ Queue ${queueName} exists with different arguments. Using alternative queue name.`);
-          queueName = `kitchen-service-queue-v5`;
+          queueName = `${queue}-v5`;
           await this.channel.assertQueue(queueName, { 
             durable: true,
             arguments: {
